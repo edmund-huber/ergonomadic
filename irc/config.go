@@ -13,7 +13,6 @@ type PassConfig struct {
 
 // SSLListenConfig defines configuration options for listening on SSL
 type SSLListenConfig struct {
-	Enabled bool
 	SSLCert string
 	SSLKey  string
 }
