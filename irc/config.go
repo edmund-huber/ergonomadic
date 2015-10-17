@@ -4,10 +4,31 @@ import (
 	"code.google.com/p/gcfg"
 	"errors"
 	"log"
+	"crypto/tls"
 )
 
 type PassConfig struct {
 	Password string
+}
+
+// SSLListenConfig defines configuration options for listening on SSL
+type SSLListenConfig struct {
+	Enabled bool
+	SSLCert string
+	SSLKey  string
+}
+
+// Certificate returns the SSL certificate assicated with this SSLListenConfig
+func (conf *SSLListenConfig) Config() (*tls.Config, error) {
+	cert, err := tls.LoadX509KeyPair(conf.SSLCert, conf.SSLKey)
+	if err != nil {
+		log.Fatal("sslconf+sslkey: invalid pair. Error: ", err)
+		return nil, errors.New("sslconf+sslkey: invalid pair")
+	}
+
+	return &tls.Config{
+		Certificates: []tls.Certificate{cert},
+	}, err
 }
 
 func (conf *PassConfig) PasswordBytes() []byte {
@@ -32,6 +53,8 @@ type Config struct {
 	Operator map[string]*PassConfig
 
 	Theater map[string]*PassConfig
+
+	SSLListener map[string]*SSLListenConfig
 }
 
 func (conf *Config) Operators() map[Name][]byte {
@@ -52,6 +75,18 @@ func (conf *Config) Theaters() map[Name][]byte {
 		theaters[name] = theaterConf.PasswordBytes()
 	}
 	return theaters
+}
+
+func (conf *Config) SSLListeners() map[Name]*tls.Config {
+	sslListeners := make(map[Name]*tls.Config)
+	for s, sslListenersConf := range conf.SSLListener {
+		config, err := sslListenersConf.Config()
+		if err != nil {
+			log.Fatal(err)
+		}
+		sslListeners[NewName(s)] = config
+	}
+	return sslListeners
 }
 
 func LoadConfig(filename string) (config *Config, err error) {
