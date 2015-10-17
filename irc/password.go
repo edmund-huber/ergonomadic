@@ -1,13 +1,15 @@
 package irc
 
 import (
-	"golang.org/x/crypto/bcrypt"
 	"encoding/base64"
 	"errors"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
-	EmptyPasswordError = errors.New("empty password")
+	EmptyPasswordError   = errors.New("empty password")
+	InvalidPasswordError = errors.New("invalid encrypted password")
 )
 
 func GenerateEncodedPassword(passwd string) (encoded string, err error) {
@@ -25,10 +27,12 @@ func GenerateEncodedPassword(passwd string) (encoded string, err error) {
 
 func DecodePassword(encoded string) (decoded []byte, err error) {
 	if encoded == "" {
-		err = EmptyPasswordError
 		return
 	}
 	decoded, err = base64.StdEncoding.DecodeString(encoded)
+	if len(decoded) < 60 {
+		err = InvalidPasswordError
+	}
 	return
 }
 
