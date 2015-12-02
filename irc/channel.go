@@ -118,6 +118,12 @@ func (channel *Channel) ModeString(client *Client) (str string) {
 		str += " " + strconv.FormatUint(channel.userLimit, 10)
 	}
 
+	// bring ergonomadic in line with other irc server that reply with
+	// an empty + for empty channel modes
+	if str == "" {
+		str += "+"
+	}
+
 	return
 }
 
