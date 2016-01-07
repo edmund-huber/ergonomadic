@@ -3,11 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/edmund-huber/ergonomadic/irc"
 	"log"
 	"os"
 	"path/filepath"
-
-	"github.com/besser/ergonomadic/irc"
 )
 
 func usage() {
