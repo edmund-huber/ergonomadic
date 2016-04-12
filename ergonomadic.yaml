@@ -1,4 +1,11 @@
 # ergonomadic IRCd config
+
+# network configuration
+network:
+    # name of the network
+    name: ErgonomadicTest
+
+# server configuration
 server:
     # server name
     name: ergonomadic.test
