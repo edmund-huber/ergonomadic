@@ -73,12 +73,15 @@ func (client *Client) run() {
 		} else if command, err = ParseCommand(line); err != nil {
 			switch err {
 			case ErrParseCommand:
+				//TODO(dan): use the real failed numeric for this (400)
 				client.Reply(RplNotice(client.server, client,
 					NewText("failed to parse command")))
 
 			case NotEnoughArgsError:
 				// TODO
 			}
+			// so the read loop will continue
+			err = nil
 			continue
 
 		} else if checkPass, ok := command.(checkPasswordCommand); ok {
