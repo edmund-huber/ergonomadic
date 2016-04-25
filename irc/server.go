@@ -39,6 +39,7 @@ type Server struct {
 	signals   chan os.Signal
 	whoWas    *WhoWasList
 	theaters  map[Name][]byte
+	isupport  *ISupportList
 }
 
 var (
@@ -78,6 +79,17 @@ func NewServer(config *Config) *Server {
 	}
 
 	signal.Notify(server.signals, SERVER_SIGNALS...)
+
+	// add RPL_ISUPPORT tokens
+	//TODO(dan): Lots more tokens to support
+	server.isupport = NewISupportList()
+	server.isupport.Add("CASEMAPPING", "ascii")
+	server.isupport.Add("CHANTYPES", "#")
+	server.isupport.Add("EXCEPTS", "")
+	server.isupport.Add("INVEX", "")
+	server.isupport.Add("NETWORK", config.Network.Name)
+	server.isupport.Add("PREFIX", "(ov)@+")
+	server.isupport.RegenerateCachedReply()
 
 	return server
 }
@@ -258,6 +270,7 @@ func (s *Server) tryRegister(c *Client) {
 	c.RplYourHost()
 	c.RplCreated()
 	c.RplMyInfo()
+	c.RplISupport()
 	s.MOTD(c)
 }
 
@@ -693,6 +706,7 @@ func (msg *VersionCommand) HandleServer(server *Server) {
 	}
 
 	client.RplVersion()
+	client.RplISupport()
 }
 
 func (msg *InviteCommand) HandleServer(server *Server) {
