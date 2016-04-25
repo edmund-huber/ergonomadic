@@ -428,12 +428,11 @@ func (changes ModeChanges) String() string {
 	op := changes[0].op
 	str := changes[0].op.String()
 	for _, change := range changes {
-		if change.op == op {
-			str += change.mode.String()
-		} else {
+		if change.op != op {
 			op = change.op
-			str += " " + change.op.String()
+			str += change.op.String()
 		}
+		str += change.mode.String()
 	}
 	return str
 }
@@ -444,28 +443,36 @@ type ModeCommand struct {
 	changes  ModeChanges
 }
 
-// MODE <nickname> *( ( "+" / "-" ) *( "i" / "w" / "o" / "O" / "r" ) )
+// MODE <nickname> ( "+" / "-" )? *( "+" / "-" / <mode character> )
 func ParseUserModeCommand(nickname Name, args []string) (Command, error) {
 	cmd := &ModeCommand{
 		nickname: nickname,
 		changes:  make(ModeChanges, 0),
 	}
 
-	for _, modeChange := range args {
-		if len(modeChange) == 0 {
+	// account for MODE command with no args to list things
+	if len(args) < 1 {
+		// don't do any further processing
+		return cmd, nil
+	}
+
+	modeArg := args[0]
+	op := ModeOp(modeArg[0])
+	if (op == Add) || (op == Remove) {
+		modeArg = modeArg[1:]
+	} else {
+		return nil, ErrParseCommand
+	}
+
+	for _, mode := range modeArg {
+		if mode == '-' || mode == '+' {
+			op = ModeOp(mode)
 			continue
 		}
-		op := ModeOp(modeChange[0])
-		if (op != Add) && (op != Remove) {
-			return nil, ErrParseCommand
-		}
-
-		for _, mode := range modeChange[1:] {
-			cmd.changes = append(cmd.changes, &ModeChange{
-				mode: UserMode(mode),
-				op:   op,
-			})
-		}
+		cmd.changes = append(cmd.changes, &ModeChange{
+			mode: UserMode(mode),
+			op:   op,
+		})
 	}
 
 	return cmd, nil
@@ -490,25 +497,29 @@ func (change *ChannelModeChange) String() (str string) {
 
 type ChannelModeChanges []*ChannelModeChange
 
-func (changes ChannelModeChanges) String() (str string) {
+func (changes ChannelModeChanges) String() string {
 	if len(changes) == 0 {
-		return
+		return ""
 	}
 
-	str = "+"
-	if changes[0].op == Remove {
-		str = "-"
-	}
+	op := changes[0].op
+	str := changes[0].op.String()
+
 	for _, change := range changes {
+		if change.op != op {
+			op = change.op
+			str += change.op.String()
+		}
 		str += change.mode.String()
 	}
+
 	for _, change := range changes {
 		if change.arg == "" {
 			continue
 		}
 		str += " " + change.arg
 	}
-	return
+	return str
 }
 
 type ChannelModeCommand struct {
@@ -517,44 +528,51 @@ type ChannelModeCommand struct {
 	changes ChannelModeChanges
 }
 
-// MODE <channel> *( ( "-" / "+" ) *<modes> *<modeparams> )
+// MODE <channel> ( "+" / "-" )? *( "+" / "-" / <mode character> ) *<modeparams>
 func ParseChannelModeCommand(channel Name, args []string) (Command, error) {
 	cmd := &ChannelModeCommand{
 		channel: channel,
 		changes: make(ChannelModeChanges, 0),
 	}
 
-	for len(args) > 0 {
-		if len(args[0]) == 0 {
-			args = args[1:]
+	// account for MODE command with no args to list things
+	if len(args) < 1 {
+		// don't do any further processing
+		return cmd, nil
+	}
+
+	modeArg := args[0]
+	op := ModeOp(modeArg[0])
+	if (op == Add) || (op == Remove) {
+		modeArg = modeArg[1:]
+	} else {
+		return nil, ErrParseCommand
+	}
+
+	currentArgIndex := 1
+
+	for _, mode := range modeArg {
+		if mode == '-' || mode == '+' {
+			op = ModeOp(mode)
 			continue
 		}
-
-		modeArg := args[0]
-		op := ModeOp(modeArg[0])
-		if (op == Add) || (op == Remove) {
-			modeArg = modeArg[1:]
-		} else {
-			op = List
+		change := &ChannelModeChange{
+			mode: ChannelMode(mode),
+			op:   op,
 		}
-
-		skipArgs := 1
-		for _, mode := range modeArg {
-			change := &ChannelModeChange{
-				mode: ChannelMode(mode),
-				op:   op,
+		switch change.mode {
+		// TODO(dan): separate this into the type A/B/C/D args and use those lists here
+		case Key, BanMask, ExceptMask, InviteMask, UserLimit,
+			ChannelOperator, ChannelCreator, Voice:
+			if len(args) > currentArgIndex {
+				change.arg = args[currentArgIndex]
+				currentArgIndex++
+			} else {
+				// silently skip this mode
+				continue
 			}
-			switch change.mode {
-			case Key, BanMask, ExceptMask, InviteMask, UserLimit,
-				ChannelOperator, ChannelCreator, Voice:
-				if len(args) > skipArgs {
-					change.arg = args[skipArgs]
-					skipArgs += 1
-				}
-			}
-			cmd.changes = append(cmd.changes, change)
 		}
-		args = args[skipArgs:]
+		cmd.changes = append(cmd.changes, change)
 	}
 
 	return cmd, nil
