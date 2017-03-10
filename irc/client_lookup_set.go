@@ -46,10 +46,10 @@ type ClientLookupSet struct {
 	db     *ClientDB
 }
 
-func NewClientLookupSet() *ClientLookupSet {
+func NewClientLookupSet(db string) *ClientLookupSet {
 	return &ClientLookupSet{
 		byNick: make(map[Name]*Client),
-		db:     NewClientDB(),
+		db:     NewClientDB(db),
 	}
 }
 
@@ -131,9 +131,9 @@ type ClientDB struct {
 	db *sql.DB
 }
 
-func NewClientDB() *ClientDB {
+func NewClientDB(db_path string) *ClientDB {
 	db := &ClientDB{
-		db: OpenDB(":memory:"),
+		db: OpenDB(db_path),
 	}
 	stmts := []string{
 		`CREATE TABLE client (
@@ -145,7 +145,7 @@ func NewClientDB() *ClientDB {
 	}
 	for _, stmt := range stmts {
 		_, err := db.db.Exec(stmt)
-		if err != nil {
+		if err != nil && !strings.HasSuffix(err.Error(), "already exists") {
 			log.Fatal("NewClientDB: ", stmt, err)
 		}
 	}
