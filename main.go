@@ -27,12 +27,7 @@ Options:
 
 	arguments, _ := docopt.Parse(usage, nil, true, version, false)
 
-	configfile := arguments["--conf"].(string)
-	config, err := irc.LoadConfig(configfile)
-	if err != nil {
-		log.Fatal("Config file did not load successfully:", err.Error())
-	}
-
+	// Special case -- We do not need to load the config file here
 	if arguments["genpasswd"].(bool) {
 		fmt.Print("Enter Password: ")
 		bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
@@ -46,7 +41,16 @@ Options:
 		}
 		fmt.Print("\n")
 		fmt.Println(encoded)
-	} else if arguments["initdb"].(bool) {
+		return
+	}
+
+	configfile := arguments["--conf"].(string)
+	config, err := irc.LoadConfig(configfile)
+	if err != nil {
+		log.Fatal("Config file did not load successfully:", err.Error())
+	}
+
+	if arguments["initdb"].(bool) {
 		irc.InitDB(config.Server.Database)
 		log.Println("database initialized: ", config.Server.Database)
 	} else if arguments["upgradedb"].(bool) {

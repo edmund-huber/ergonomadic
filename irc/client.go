@@ -37,7 +37,7 @@ func NewClient(server *Server, conn net.Conn) *Client {
 	now := time.Now()
 	client := &Client{
 		atime:        now,
-		authorized:   server.password == nil,
+		authorized:   len(server.password) == 0,
 		capState:     CapNone,
 		capabilities: make(CapabilitySet),
 		channels:     make(ChannelSet),
