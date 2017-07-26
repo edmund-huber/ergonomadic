@@ -7,10 +7,12 @@ server:
     database: ircd.db
 
     # addresses to listen on
+    # listen:
+    #   - ":6667"
+    #   - "127.0.0.1:6668"
+    #   - "[::1]:6668"
     listen:
         - ":6667"
-        - "127.0.0.1:6668"
-        - "[::1]:6668"
 
     # websocket listening port
     wslisten: ":8080"
