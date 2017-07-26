@@ -12,6 +12,11 @@ type PassConfig struct {
 	Password string
 }
 
+type TLSConfig struct {
+	Key  string
+	Cert string
+}
+
 func (conf *PassConfig) PasswordBytes() []byte {
 	bytes, err := DecodePassword(conf.Password)
 	if err != nil {
@@ -23,12 +28,13 @@ func (conf *PassConfig) PasswordBytes() []byte {
 type Config struct {
 	Server struct {
 		PassConfig
-		Database string
-		Listen   []string
-		Wslisten string
-		Log      string
-		MOTD     string
-		Name     string
+		Database  string
+		Listen    []string
+		TLSListen map[string]*TLSConfig
+		Wslisten  string
+		Log       string
+		MOTD      string
+		Name      string
 	}
 
 	Operator map[string]*PassConfig
@@ -73,7 +79,7 @@ func LoadConfig(filename string) (config *Config, err error) {
 	if config.Server.Database == "" {
 		return nil, errors.New("Server database missing")
 	}
-	if len(config.Server.Listen) == 0 {
+	if len(config.Server.Listen)+len(config.Server.TLSListen) == 0 {
 		return nil, errors.New("Server listening addresses missing")
 	}
 	return config, nil

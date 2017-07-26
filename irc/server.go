@@ -2,6 +2,8 @@ package irc
 
 import (
 	"bufio"
+	"crypto/rand"
+	"crypto/tls"
 	"database/sql"
 	"fmt"
 	"log"
@@ -71,6 +73,10 @@ func NewServer(config *Config) *Server {
 
 	for _, addr := range config.Server.Listen {
 		server.listen(addr)
+	}
+
+	for addr, tlsconfig := range config.Server.TLSListen {
+		server.listentls(addr, tlsconfig)
 	}
 
 	if config.Server.Wslisten != "" {
@@ -182,6 +188,19 @@ func (server *Server) Run() {
 	}
 }
 
+func (s *Server) acceptor(listener net.Listener) {
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			Log.error.Printf("%s accept error: %s", s, err)
+			continue
+		}
+		Log.debug.Printf("%s accept: %s", s, conn.RemoteAddr())
+
+		s.newConns <- conn
+	}
+}
+
 //
 // listen goroutine
 //
@@ -194,18 +213,28 @@ func (s *Server) listen(addr string) {
 
 	Log.info.Printf("%s listening on %s", s, addr)
 
-	go func() {
-		for {
-			conn, err := listener.Accept()
-			if err != nil {
-				Log.error.Printf("%s accept error: %s", s, err)
-				continue
-			}
-			Log.debug.Printf("%s accept: %s", s, conn.RemoteAddr())
+	go s.acceptor(listener)
+}
 
-			s.newConns <- conn
-		}
-	}()
+//
+// listen tls goroutine
+//
+
+func (s *Server) listentls(addr string, tlsconfig *TLSConfig) {
+	cert, err := tls.LoadX509KeyPair(tlsconfig.Cert, tlsconfig.Key)
+	if err != nil {
+		log.Fatalf("error loading tls cert/key pair: %s", err)
+	}
+	config := tls.Config{Certificates: []tls.Certificate{cert}}
+	config.Rand = rand.Reader
+	listener, err := tls.Listen("tcp", addr, &config)
+	if err != nil {
+		log.Fatalf("error binding to %s: %s", addr, err)
+	}
+
+	Log.info.Printf("%s listening on %s", s, addr)
+
+	go s.acceptor(listener)
 }
 
 //
