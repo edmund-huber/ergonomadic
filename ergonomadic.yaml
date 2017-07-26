@@ -12,9 +12,6 @@ server:
         - "127.0.0.1:6668"
         - "[::1]:6668"
 
-    # websocket listening port
-    wslisten: ":8080"
-
     # password to login to the server
     # generated using  "ergonomadic genpasswd"
     #password: ""
