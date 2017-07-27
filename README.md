@@ -18,15 +18,7 @@ Discussion at:
 * passwords stored in [bcrypt][go-crypto] format
 * channels that [persist][go-sqlite] between restarts (+P)
 * messages are queued in the same order to all connected clients
-
-# What about SSL/TLS support?
-
-Go has a not-yet-verified-as-safe TLS 1.2 implementation. Sadly, many popular
-IRC clients will negotiate nothing newer than SSLv2. If you want to use SSL to
-protect traffic, I recommend using
-[stunnel](https://www.stunnel.org/index.html) version 4.56 with haproxy's
-[PROXY protocol][proxy-proto]. This will allow the server to get the client's
-original addresses for hostname lookups.
+* SSL/TLS support
 
 # What about federation?
 
